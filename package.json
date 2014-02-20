@@ -1,0 +1,41 @@
+{
+    "name": "js-plugins",
+    "description": "An extension-point based open plugin framework",
+    "version": "0.0.1",
+    "author": "Yisui Hu <easeway@gmail.com>",
+    "keywords": ["extension", "plugin", "framework"],
+    "scripts": {
+        "test": "mocha -R spec test/*-test.js",
+        "cov-html": "mocha -r blanket -R html-cov test/*-unit-test.js >_coverage.html"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/easeway/js-plugins"
+    },
+    "main": "./index",
+    "dependencies": {
+        "js-class": "0.0.2",
+        "js-flow": "0.0.1"
+    },
+    "devDependencies": {
+        "mocha": "1.17.1",
+        "sandboxed-module": "0.3.0",
+        "blanket": "1.1.6"
+    },
+    "engines": {
+        "node": ">=0.10",
+        "npm": "1"
+    },
+    "licenses": [
+        {
+            "type": "MIT",
+            "url": "https://github.com/easeway/js-plugins/raw/master/LICENSE"
+        }
+    ],
+    "config": {
+        "blanket": {
+            "onlyCwd": true,
+            "pattern": "//^((?!node_modules).)*/lib/.+$/"
+        }
+    }
+}
