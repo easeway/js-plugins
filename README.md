@@ -40,7 +40,9 @@ Here's an example what *xedit-lang-x* written in the `package.json`:
     "name": "xedit-lang-x",
     ...
     "extensions": {
-        "xedit:language": "./lib/xedit-lang-plugin"
+        "xedit:language": {
+            "x": "./lib/xedit-lang-plugin"
+        }
     }
 }
 ```
