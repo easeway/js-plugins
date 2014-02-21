@@ -1,7 +1,7 @@
 {
     "name": "js-plugins",
     "description": "An extension-point based open plugin framework",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "author": "Yisui Hu <easeway@gmail.com>",
     "keywords": ["extension", "plugin", "framework"],
     "scripts": {
