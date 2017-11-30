@@ -27,6 +27,40 @@ than, *xedit* automatically recognized language *x*.
 
 # How it works
 
+## Concepts
+
+### Host
+
+**host** is the consumer of extension instances.
+
+### Plugin
+
+A **plugin** is a library/module providing a few **extensions** for certain
+**extension-points**.
+
+### ExtensionPoint
+
+**extension-point** is the abstract name indicating a feature/function can be
+extended by an extension.
+The names are application specific,
+and is used as a contract between **host** and **extensions**.
+
+### Extension
+
+**extension** provides specific logic to extend the feature/function defined
+by **extension-point** and consumed by **host**.
+The logic is provided by registering a factory function which creates an
+instance of the extension to implement the logic
+(providing methods, fields according to certain contract).
+
+### ExtensionName
+
+There can be multiple extensions associated with a single **extension-point**,
+and each extension is identified by a **name** which must be unique per one
+extension-point.
+
+## Example
+
 In the scenario above, *xedit* scans and loads plugins.
 In this way, *xedit* is called **host** in this framework.
 And *xedit-lang-x* is a **plugin**.
@@ -49,7 +83,79 @@ Here's an example what *xedit-lang-x* written in the `package.json`:
 
 In the example above, section `extensions` defines what extensions are provided by this module.
 The key of the hash is the extension-point name,
-and the value can be a path to the actual script file or a name representing an attribute from the object provided by `index.js`.
+and the value is a dictionary mapping from extension names to factories.
+
+There are two ways to specify the factory.
+As in the above example `./lib/xedit-lang-plugin` specifies the javascript file which exports the factory function.
+Or a plain name without embedded `/` indicates `index.js` which exports the factory function.
+
+The file `./lib/xedit-lang-plugin.js` will exports a factory function:
+
+```javascript
+...
+
+module.exports = function() {
+    return new ExtensionLangX();
+}
+```
+
+Alternatively, the factory can be specified in a more detailed form:
+
+```json
+{
+    "name": "xedit-lang-x",
+    ...
+    "extensions": {
+        "xedit:language": {
+            "x": {
+              "module": "./lib/xedit-lang-multi-plugin",
+              "object": "langx"
+            }
+        }
+    }
+}
+```
+
+The above example specifies a javascript module which is interpreted the same way described above
+except the module exports a dictionary instead of a function,
+and use `object` to specify the key in the dictionary to retrieve the factory function.
+
+In this case, the file `./lib/xedit-lang-multi-plugin.js` will exports an dictionary:
+
+```javascript
+...
+module.exports = {
+    "langx": function() { return new ExtensionLangX(); },
+};
+```
+
+## Factory function
+
+The factory function can be defined in synchronous or asynchronous way:
+
+```javascript
+function extensionFactoryAsync(data, host, info, callback) { }
+function extensionFactorySync(data, host, info) { }
+```
+
+For parameters:
+
+- `data`: the opaque data provided by **host** (via `options` calling `connect`) when connecting the extension;
+- `host`: the **host** object
+- `info`: is an object defining **extension-point** and name of extension:
+
+```json
+{
+    "extension": "extension-point",
+    "name": "extension-name",
+}
+```
+
+When `callback` is specified, the factory should return extension instance to
+`callback` which is defined as `function callback(err, instance)`.
+Without `callback`, the instance should be returned immediately.
+
+## Loading plugins
 
 When *xedit* starts, it uses **js-plugins** to scan all installed modules and find out all available extensions from `package.json` files.
 When it is going to load a language plugin, it uses extension-point name `xedit:language` to load all matched extensions.
@@ -68,8 +174,20 @@ By default, **js-plugins** scans the following locations in sequence (latter one
 
 **js-plugins** provides a simple class `Plugins`:
 
+#### Simplest Usage
+
+```javascript
+var pluginManager = require('js-plugins').instance;
+pluginManager.scan();
+pluginManager.connect(host, extensionPoint, options, function (err, instance) {});
+```
+
+#### More complicated
+
 ```javascript
 var Plugins = require('js-plugins');
+
+// create own instance instead of using the default one
 var pluginManager = new Plugins();
 ```
 
@@ -82,25 +200,8 @@ pluginManager.register(extensionPoint, name, factory);
 ```
 
 to register a plugin mapped to `extensionPoint/name`.
-The `factory` is defined in two forms distinguished by the number of arguments:
 
-```javascript
-function factory(data, host, options, callback);    // the async version, the extension is created asynchronously
-                                                    // callback is defined as function callback(err, extension)
-function factory(data, host, options);              // the sync version, the extension is returned directly
-```
-
-Factories with argument number less than 3 are treated as sync version.
-The parameters are defined as:
-
-- `data`: opaque data which is recognized by **host** and **plugin**
-- `host`: instance of **host**
-- `options`: additional information, currently defined
-    * `extensionPoint`: name of extension-point
-    * `name`: name of extension
-- `callback`: for receiving the extension, in the form of `function (err, extension)`
-
-#### Create extensions
+#### Connect extensions
 
 ```javascript
 pluginManager.connect(host, extensionPoint, options, callback)
@@ -139,18 +240,7 @@ All methods are promoted under `Plugins` directly. E.g. `Plugins.scan` is equiva
 
 ### **plugin** side
 
-**js-plugins** is not needed. The only thing to do is presenting `extensions` section in `package.json`.
-
-The `extensions` section is a hash with each key as an extension-point, and the value is also another hash
-with each key as extension name. The value can be in several form:
-
-- hash: this is the complete form, it defines 2 attributes:
-    * `module`: if present, specify the path of script file which will be loaded using `require`, otherwise the top directory (containing `package.json`) is required;
-    * `object`: when present, it means the required module doesn't provide a factory directory, but must use the value of `object` to get the factory
-- string without '/': equals to hash form without `module` but `object`
-- string with '/': equals to hash form with `module` but no `object`
-
-See above to find out how to define a factory.
+See above example of `xedit-lang-x` about writing a plugin.
 
 ## License
 
